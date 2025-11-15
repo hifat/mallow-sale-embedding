@@ -11,6 +11,7 @@ import (
 )
 
 var OllamaHost string
+var AgentToken string
 var QdHost string
 var QdPort string
 var QdApiKey string
@@ -21,6 +22,7 @@ func init() {
 	}
 
 	OllamaHost = os.Getenv("OLLAMA_HOST")
+	AgentToken = os.Getenv("AGENT_TOKEN")
 	QdHost = os.Getenv("QD_HOST")
 	QdPort = os.Getenv("QD_PORT")
 	QdApiKey = os.Getenv("QD_API_KEY")
@@ -28,20 +30,20 @@ func init() {
 
 func main() {
 	llm, err := ollama.New(
-		ollama.WithModel("nomic-embed-text"),
+		ollama.WithModel("paraphrase-multilingual"),
 		ollama.WithServerURL(OllamaHost),
 	)
 	if err != nil {
-		log.Fatalf("failed to new ollama: %v", err)
+		log.Fatalf("failed to new model: %v", err)
 	}
 
 	ctx := context.Background()
 
 	// Create embeddings for the text
 	texts := []string{
-		"Vector Database",
-		"I Love You",
-		"Good Morning",
+		"ฐานข้อมูลแบบฝัง",
+		"ฉันรักคุณ",
+		"สวัสดีตอนเช้า",
 	}
 
 	embs, err := llm.CreateEmbedding(ctx, texts)
@@ -83,7 +85,11 @@ func main() {
 	points := make([]*qdrant.PointStruct, len(embs))
 	for i, emb := range embs {
 		points[i] = &qdrant.PointStruct{
-			Id: &qdrant.PointId{PointIdOptions: &qdrant.PointId_Num{Num: uint64(i + 1)}},
+			Id: &qdrant.PointId{
+				PointIdOptions: &qdrant.PointId_Num{
+					Num: uint64(i + 1),
+				},
+			},
 			Vectors: &qdrant.Vectors{
 				VectorsOptions: &qdrant.Vectors_Vector{
 					Vector: &qdrant.Vector{Data: emb},
@@ -106,7 +112,7 @@ func main() {
 	log.Println("✓ Embeddings stored in Qdrant")
 
 	// Search for "feeling"
-	queryText := "Hello"
+	queryText := "เราเลิกกันเถอะ"
 	queryEmb, err := llm.CreateEmbedding(ctx, []string{queryText})
 	if err != nil {
 		log.Fatalf("failed to create query embedding: %v", err)
