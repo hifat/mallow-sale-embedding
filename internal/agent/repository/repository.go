@@ -1,4 +1,4 @@
-package repository
+package agentRepository
 
 import "context"
 
