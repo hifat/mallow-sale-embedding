@@ -1,4 +1,4 @@
-package service
+package inventoryService
 
 import (
 	"context"

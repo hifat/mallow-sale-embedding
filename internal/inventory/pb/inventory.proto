@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package inventoryPb;
+option go_package = "./inventoryPb";
+
+message SearchReq {
+    string search = 1;
+}
+
+message InventoryResponse {
+    string ID = 1;
+    string Name = 2;
+}
+
+
+service InventoryGrpcService {
+    rpc Search(SearchReq) returns (InventoryResponse);
+}

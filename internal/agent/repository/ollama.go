@@ -3,7 +3,6 @@ package agentRepository
 import (
 	"context"
 
-	"github.com/qdrant/go-client/qdrant"
 	"github.com/tmc/langchaingo/llms/ollama"
 )
 
@@ -11,7 +10,7 @@ type ollamaRepository struct {
 	llm *ollama.LLM
 }
 
-func NewQdrant(llm *ollama.LLM, db *qdrant.Client) IRepository {
+func NewOllama(llm *ollama.LLM) IRepository {
 	return &ollamaRepository{
 		llm,
 	}

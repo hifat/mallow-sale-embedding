@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	inventoryDi "github.com/hifat/mallow-sale-embedding/internal/inventory/di"
 	"github.com/joho/godotenv"
 	"github.com/qdrant/go-client/qdrant"
 	"github.com/tmc/langchaingo/llms/ollama"
@@ -138,4 +139,6 @@ func main() {
 	} else {
 		log.Println("No results found")
 	}
+
+	inventoryDi.Init(llm, qdClient)
 }
