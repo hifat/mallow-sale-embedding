@@ -85,11 +85,7 @@ func main() {
 	points := make([]*qdrant.PointStruct, len(embs))
 	for i, emb := range embs {
 		points[i] = &qdrant.PointStruct{
-			Id: &qdrant.PointId{
-				PointIdOptions: &qdrant.PointId_Num{
-					Num: uint64(i + 1),
-				},
-			},
+			Id: qdrant.NewIDNum(uint64(i + 1)),
 			Vectors: &qdrant.Vectors{
 				VectorsOptions: &qdrant.Vectors_Vector{
 					Vector: &qdrant.Vector{Data: emb},
@@ -111,25 +107,27 @@ func main() {
 
 	log.Println("✓ Embeddings stored in Qdrant")
 
-	// Search for "feeling"
 	queryText := "เราเลิกกันเถอะ"
 	queryEmb, err := llm.CreateEmbedding(ctx, []string{queryText})
 	if err != nil {
 		log.Fatalf("failed to create query embedding: %v", err)
 	}
 
-	searchResults, err := qdClient.GetPointsClient().Search(ctx, &qdrant.SearchPoints{
+	limit := uint64(1)
+	scThreshold := float32(0.8)
+	searchResults, err := qdClient.Query(ctx, &qdrant.QueryPoints{
 		CollectionName: colName,
-		Vector:         queryEmb[0],
-		Limit:          1,
+		Query:          qdrant.NewQuery(queryEmb[0]...),
+		Limit:          &limit,
+		ScoreThreshold: &scThreshold,
 		WithPayload:    &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true}},
 	})
 	if err != nil {
 		log.Fatalf("failed to search: %v", err)
 	}
 
-	if len(searchResults.Result) > 0 {
-		result := searchResults.Result[0]
+	if len(searchResults) > 0 {
+		result := searchResults[0]
 		if result.Payload != nil {
 			if textValue, ok := result.Payload["text"]; ok {
 				if stringVal, ok := textValue.Kind.(*qdrant.Value_StringValue); ok {
