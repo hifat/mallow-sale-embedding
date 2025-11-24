@@ -1,144 +1,81 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"log"
-	"os"
+	"net"
 
 	inventoryDi "github.com/hifat/mallow-sale-embedding/internal/inventory/di"
-	"github.com/joho/godotenv"
+	inventoryPb "github.com/hifat/mallow-sale-embedding/internal/inventory/pb"
+	middlewareMiddleware "github.com/hifat/mallow-sale-embedding/internal/middleware/handler"
+	"github.com/hifat/mallow-sale-embedding/pkg/config"
 	"github.com/qdrant/go-client/qdrant"
 	"github.com/tmc/langchaingo/llms/ollama"
+	"google.golang.org/grpc"
 )
 
-var OllamaHost string
-var AgentToken string
-var QdHost string
-var QdPort string
-var QdApiKey string
+// var OllamaHost string
+// var QdHost string
+// var QdPort string
+// var QdApiKey string
+// var ApiKey string
+// var GrpcPort string
 
-func init() {
-	if err := godotenv.Load("./.env"); err != nil {
+// func init() {
+// 	OllamaHost = os.Getenv("OLLAMA_HOST")
+// 	QdHost = os.Getenv("QD_HOST")
+// 	QdPort = os.Getenv("QD_PORT")
+// 	QdApiKey = os.Getenv("QD_API_KEY")
+// 	ApiKey = os.Getenv("API_KEY")
+// 	GrpcPort = os.Getenv("GRPC_PORT")
+// }
+
+func main() {
+	cfg, err := config.LoadConfig("./env/.env")
+	if err != nil {
 		log.Fatalf("failed to load .env: %v", err)
 	}
 
-	OllamaHost = os.Getenv("OLLAMA_HOST")
-	AgentToken = os.Getenv("AGENT_TOKEN")
-	QdHost = os.Getenv("QD_HOST")
-	QdPort = os.Getenv("QD_PORT")
-	QdApiKey = os.Getenv("QD_API_KEY")
-}
-
-func main() {
+	agentCfg := cfg.Agent
 	llm, err := ollama.New(
 		ollama.WithModel("paraphrase-multilingual"),
-		ollama.WithServerURL(OllamaHost),
+		ollama.WithServerURL(agentCfg.OllamaHost),
 	)
 	if err != nil {
 		log.Fatalf("failed to new model: %v", err)
 	}
 
-	ctx := context.Background()
-
-	// Create embeddings for the text
-	texts := []string{
-		"ฐานข้อมูลแบบฝัง",
-		"ฉันรักคุณ",
-		"สวัสดีตอนเช้า",
-	}
-
-	embs, err := llm.CreateEmbedding(ctx, texts)
-	if err != nil {
-		log.Fatalf("failed to create embeddings: %v", err)
-	}
-
-	// Connect to Qdrant
+	qdCfg := cfg.QDB
 	qdClient, err := qdrant.NewClient(&qdrant.Config{
-		Host:   QdHost,
-		Port:   6334,
-		APIKey: QdApiKey,
+		Host:   qdCfg.Host,
+		Port:   qdCfg.Port,
+		APIKey: qdCfg.ApiKey,
 		UseTLS: true,
 		// Cloud:  true,
-
 	})
 	if err != nil {
 		log.Fatalf("failed to connect to qdrant: %v", err)
 	}
 	defer qdClient.Close()
 
-	colName := "embeddings"
+	m := middlewareMiddleware.New(&cfg.Auth)
 
-	// // Ignore error if collection doesn't exist
-	// _, err = collectionClient.Delete(ctx, &qdrant.DeleteCollection{
-	// 	CollectionName: colName,
-	// })
+	grpcSrv := grpc.NewServer(
+		grpc.UnaryInterceptor(m.AuthInterceptor),
+	)
 
-	// Create or recreate collection
-	qdClient.CreateCollection(context.Background(), &qdrant.CreateCollection{
-		CollectionName: colName,
-		VectorsConfig: qdrant.NewVectorsConfig(&qdrant.VectorParams{
-			Size:     uint64(len(embs[0])),
-			Distance: qdrant.Distance_Cosine,
-		}),
-	})
+	ivtDi := inventoryDi.Init(llm, qdClient)
 
-	// Insert embeddings into Qdrant
-	points := make([]*qdrant.PointStruct, len(embs))
-	for i, emb := range embs {
-		points[i] = &qdrant.PointStruct{
-			Id: qdrant.NewIDNum(uint64(i + 1)),
-			Vectors: &qdrant.Vectors{
-				VectorsOptions: &qdrant.Vectors_Vector{
-					Vector: &qdrant.Vector{Data: emb},
-				},
-			},
-			Payload: map[string]*qdrant.Value{
-				"text": {Kind: &qdrant.Value_StringValue{StringValue: texts[i]}},
-			},
-		}
-	}
+	inventoryPb.RegisterInventoryGrpcServiceServer(grpcSrv, ivtDi.InventoryGrpc)
 
-	_, err = qdClient.Upsert(ctx, &qdrant.UpsertPoints{
-		CollectionName: colName,
-		Points:         points,
-	})
+	appCfg := cfg.App
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", appCfg.Port))
 	if err != nil {
-		log.Fatalf("failed to upsert points: %v", err)
+		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	log.Println("✓ Embeddings stored in Qdrant")
-
-	queryText := "เราเลิกกันเถอะ"
-	queryEmb, err := llm.CreateEmbedding(ctx, []string{queryText})
-	if err != nil {
-		log.Fatalf("failed to create query embedding: %v", err)
+	log.Printf("listening on port :%d", appCfg.Port)
+	if err := grpcSrv.Serve(lis); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
 	}
-
-	limit := uint64(1)
-	scThreshold := float32(0.8)
-	searchResults, err := qdClient.Query(ctx, &qdrant.QueryPoints{
-		CollectionName: colName,
-		Query:          qdrant.NewQuery(queryEmb[0]...),
-		Limit:          &limit,
-		ScoreThreshold: &scThreshold,
-		WithPayload:    &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true}},
-	})
-	if err != nil {
-		log.Fatalf("failed to search: %v", err)
-	}
-
-	if len(searchResults) > 0 {
-		result := searchResults[0]
-		if result.Payload != nil {
-			if textValue, ok := result.Payload["text"]; ok {
-				if stringVal, ok := textValue.Kind.(*qdrant.Value_StringValue); ok {
-					log.Printf("Query: '%s' -> Result: '%s'\n", queryText, stringVal.StringValue)
-				}
-			}
-		}
-	} else {
-		log.Println("No results found")
-	}
-
-	inventoryDi.Init(llm, qdClient)
 }
