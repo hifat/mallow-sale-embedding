@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-package inventoryPb;
-option go_package = "./inventoryPb";
+package inventoryProto;
+option go_package = "./inventoryProto";
 
 message SearchReq {
     string search = 1;

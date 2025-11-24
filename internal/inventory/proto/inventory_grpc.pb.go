@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v5.29.3
-// source: internal/inventory/pb/inventory.proto
+// source: internal/inventory/proto/inventory.proto
 
-package inventoryPb
+package inventoryProto
 
 import (
 	context "context"
@@ -35,7 +35,7 @@ func NewInventoryGrpcServiceClient(cc grpc.ClientConnInterface) InventoryGrpcSer
 
 func (c *inventoryGrpcServiceClient) Search(ctx context.Context, in *SearchReq, opts ...grpc.CallOption) (*InventoryResponse, error) {
 	out := new(InventoryResponse)
-	err := c.cc.Invoke(ctx, "/inventoryPb.InventoryGrpcService/Search", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/inventoryProto.InventoryGrpcService/Search", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func _InventoryGrpcService_Search_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/inventoryPb.InventoryGrpcService/Search",
+		FullMethod: "/inventoryProto.InventoryGrpcService/Search",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(InventoryGrpcServiceServer).Search(ctx, req.(*SearchReq))
@@ -92,7 +92,7 @@ func _InventoryGrpcService_Search_Handler(srv interface{}, ctx context.Context, 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var InventoryGrpcService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "inventoryPb.InventoryGrpcService",
+	ServiceName: "inventoryProto.InventoryGrpcService",
 	HandlerType: (*InventoryGrpcServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -101,5 +101,5 @@ var InventoryGrpcService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/inventory/pb/inventory.proto",
+	Metadata: "internal/inventory/proto/inventory.proto",
 }

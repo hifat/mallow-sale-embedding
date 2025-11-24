@@ -3,12 +3,12 @@ package inventoryHandler
 import (
 	"context"
 
-	inventoryPb "github.com/hifat/mallow-sale-embedding/internal/inventory/pb"
+	inventoryProto "github.com/hifat/mallow-sale-embedding/internal/inventory/proto"
 	inventoryService "github.com/hifat/mallow-sale-embedding/internal/inventory/service"
 )
 
 type InventoryGrpc struct {
-	inventoryPb.UnimplementedInventoryGrpcServiceServer
+	inventoryProto.UnimplementedInventoryGrpcServiceServer
 	inventorySvc inventoryService.IService
 }
 
@@ -16,13 +16,13 @@ func NewGrpc(inventorySvc inventoryService.IService) *InventoryGrpc {
 	return &InventoryGrpc{inventorySvc: inventorySvc}
 }
 
-func (g *InventoryGrpc) Search(ctx context.Context, req *inventoryPb.SearchReq) (*inventoryPb.InventoryResponse, error) {
+func (g *InventoryGrpc) Search(ctx context.Context, req *inventoryProto.SearchReq) (*inventoryProto.InventoryResponse, error) {
 	res, err := g.inventorySvc.Search(ctx, req.Search)
 	if err != nil {
 		return nil, err
 	}
 
-	return &inventoryPb.InventoryResponse{
+	return &inventoryProto.InventoryResponse{
 		ID:   res.ID,
 		Name: res.Name,
 	}, nil

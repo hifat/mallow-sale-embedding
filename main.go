@@ -6,7 +6,7 @@ import (
 	"net"
 
 	inventoryDi "github.com/hifat/mallow-sale-embedding/internal/inventory/di"
-	inventoryPb "github.com/hifat/mallow-sale-embedding/internal/inventory/pb"
+	inventoryProto "github.com/hifat/mallow-sale-embedding/internal/inventory/proto"
 	middlewareMiddleware "github.com/hifat/mallow-sale-embedding/internal/middleware/handler"
 	"github.com/hifat/mallow-sale-embedding/pkg/config"
 	"github.com/qdrant/go-client/qdrant"
@@ -50,7 +50,7 @@ func main() {
 
 	ivtDi := inventoryDi.Init(llm, qdClient)
 
-	inventoryPb.RegisterInventoryGrpcServiceServer(grpcSrv, ivtDi.InventoryGrpc)
+	inventoryProto.RegisterInventoryGrpcServiceServer(grpcSrv, ivtDi.InventoryGrpc)
 
 	appCfg := cfg.App
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", appCfg.Port))
