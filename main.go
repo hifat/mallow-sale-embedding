@@ -14,22 +14,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// var OllamaHost string
-// var QdHost string
-// var QdPort string
-// var QdApiKey string
-// var ApiKey string
-// var GrpcPort string
-
-// func init() {
-// 	OllamaHost = os.Getenv("OLLAMA_HOST")
-// 	QdHost = os.Getenv("QD_HOST")
-// 	QdPort = os.Getenv("QD_PORT")
-// 	QdApiKey = os.Getenv("QD_API_KEY")
-// 	ApiKey = os.Getenv("API_KEY")
-// 	GrpcPort = os.Getenv("GRPC_PORT")
-// }
-
 func main() {
 	cfg, err := config.LoadConfig("./env/.env")
 	if err != nil {
