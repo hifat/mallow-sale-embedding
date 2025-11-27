@@ -53,6 +53,8 @@ func (r *qdrantRepository) Search(ctx context.Context, queryEmb [][]float32) (*i
 	}, nil
 }
 
+// TODO ทำ Bluk upsert
+
 func (r *qdrantRepository) Upsert(ctx context.Context, req *inventoryModule.ReqInventory) error {
 	points := make([]*qdrant.PointStruct, len(req.Embeddings))
 	for i, emb := range req.Embeddings {
@@ -64,13 +66,11 @@ func (r *qdrantRepository) Upsert(ctx context.Context, req *inventoryModule.ReqI
 			}),
 		}
 
-		// TODO: Should make uuid in mls service
-		point.Id = qdrant.NewID(uuid.New().String())
-		// if req.Inventories[i].ID != "" {
-		// 	point.Id = qdrant.NewID(req.Inventories[i].ID)
-		// } else {
-		// 	point.Id = qdrant.NewID(uuid.New().String())
-		// }
+		if req.Inventories[i].ID != "" {
+			point.Id = qdrant.NewIDUUID(req.Inventories[i].ID)
+		} else {
+			point.Id = qdrant.NewIDUUID(uuid.New().String())
+		}
 
 		points[i] = point
 	}
@@ -81,52 +81,6 @@ func (r *qdrantRepository) Upsert(ctx context.Context, req *inventoryModule.ReqI
 	})
 
 	return err
-}
-
-func (r *qdrantRepository) BatchUpsert(ctx context.Context, reqs []*inventoryModule.ReqInventory, batchSize int) error {
-	if batchSize <= 0 {
-		batchSize = 100 // Default batch size
-	}
-
-	for i := 0; i < len(reqs); i += batchSize {
-		end := i + batchSize
-		if end > len(reqs) {
-			end = len(reqs)
-		}
-
-		batch := reqs[i:end]
-		var points []*qdrant.PointStruct
-
-		for _, req := range batch {
-			for j, emb := range req.Embeddings {
-				point := &qdrant.PointStruct{
-					Vectors: qdrant.NewVectors(emb...),
-					Payload: qdrant.NewValueMap(map[string]any{
-						"id":   req.Inventories[j].ID,
-						"name": req.Inventories[j].Name,
-					}),
-				}
-
-				if req.Inventories[j].ID != "" {
-					point.Id = qdrant.NewIDUUID(req.Inventories[j].ID)
-				} else {
-					point.Id = qdrant.NewIDUUID(uuid.New().String())
-				}
-
-				points = append(points, point)
-			}
-		}
-
-		_, err := r.db.Upsert(ctx, &qdrant.UpsertPoints{
-			CollectionName: InventoryCol,
-			Points:         points,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (r *qdrantRepository) DeleteByID(ctx context.Context, id string) error {

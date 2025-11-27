@@ -28,11 +28,17 @@ type Agent struct {
 	OllamaHost string
 }
 
+type MLS struct {
+	GRPCHost string
+	GRPCKey  string
+}
+
 type Config struct {
 	App   App
 	QDB   QDB
 	Auth  Auth
 	Agent Agent
+	MLS   MLS
 }
 
 func LoadConfig(path string) (*Config, error) {
@@ -64,6 +70,10 @@ func LoadConfig(path string) (*Config, error) {
 		},
 		Agent: Agent{
 			OllamaHost: viper.GetString("OLLAMA_HOST"),
+		},
+		MLS: MLS{
+			GRPCHost: viper.GetString("MLS_GRPC_HOST"),
+			GRPCKey:  viper.GetString("MLS_GRPC_KEY"),
 		},
 	}
 
