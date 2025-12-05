@@ -21,7 +21,7 @@ func NewQdrant(db *qdrant.Client) IRepository {
 
 func (r *qdrantRepository) Search(ctx context.Context, queryEmb [][]float32) (*inventoryModule.Response, error) {
 	limit := uint64(1)
-	scThreshold := float32(0.8)
+	scThreshold := float32(0.9)
 	searchResults, err := r.db.Query(ctx, &qdrant.QueryPoints{
 		CollectionName: InventoryCol,
 		Query:          qdrant.NewQuery(queryEmb[0]...),
@@ -43,7 +43,7 @@ func (r *qdrantRepository) Search(ctx context.Context, queryEmb [][]float32) (*i
 
 	result := searchResults[0]
 
-	if result.Payload != nil {
+	if result.Payload == nil {
 		return nil, nil
 	}
 

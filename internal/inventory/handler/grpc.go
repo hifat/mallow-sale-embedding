@@ -22,8 +22,12 @@ func (g *InventoryGrpc) Search(ctx context.Context, req *inventoryProto.SearchRe
 		return nil, err
 	}
 
-	return &inventoryProto.InventoryResponse{
-		ID:   res.ID,
-		Name: res.Name,
-	}, nil
+	if res != nil {
+		return &inventoryProto.InventoryResponse{
+			ID:   res.ID,
+			Name: res.Name,
+		}, nil
+	}
+
+	return nil, nil
 }
